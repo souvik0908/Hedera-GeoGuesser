@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hedera GeoGuesser - 3D Geography Game</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="loading-content">
+            <div class="hedera-logo">⚡</div>
+            <h1>HEDERA GEOGUESSER</h1>
+            <div class="loading-bar">
+                <div class="loading-progress" id="loading-progress"></div>
+            </div>
+            <p>Loading 3D world...</p>
+        </div>
+    </div>
+
+    <div id="game-container" style="display: none;">
+        <!-- Header with game info and wallet connection -->
+        <header class="game-header">
+            <div class="header-left">
+                <h1 class="game-title">⚡ HEDERA GEOGUESSER</h1>
+                <div class="game-stats">
+                    <span class="stat">Score: <span id="current-score">0</span></span>
+                    <span class="stat">Round: <span id="current-round">1</span>/5</span>
+                    <span class="stat">HBAR: <span id="hbar-balance">0</span></span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="wallet-connect" class="wallet-btn">Connect Wallet</button>
+                <div id="wallet-status" class="wallet-status" style="display: none;">
+                    <span class="wallet-connected">🟢 Connected</span>
+                    <span id="wallet-address"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 3D Game Viewport -->
+        <div id="game-viewport">
+            <canvas id="game-canvas"></canvas>
+            
+            <!-- Game UI Overlay -->
+            <div class="game-overlay">
+                <div class="location-info">
+                    <h3>Find this location!</h3>
+                    <p>Explore the 3D environment and guess where you are in the world.</p>
+                </div>
+
+                <!-- Movement Controls -->
+                <div class="controls-panel">
+                    <h4>Controls</h4>
+                    <div class="controls-grid">
+                        <div class="control-item">WASD: Move</div>
+                        <div class="control-item">Mouse: Look Around</div>
+                        <div class="control-item">Shift: Run</div>
+                        <div class="control-item">Space: Jump</div>
+                    </div>
+                </div>
+
+                <!-- Guess Panel -->
+                <div class="guess-panel">
+                    <h4>Make Your Guess</h4>
+                    <div id="mini-map" class="mini-map">
+                        <canvas id="map-canvas" width="300" height="200"></canvas>
+                        <div class="map-marker" id="guess-marker" style="display: none;"></div>
+                    </div>
+                    <button id="submit-guess" class="guess-btn" disabled>Submit Guess</button>
+                    <button id="skip-round" class="skip-btn">Skip Round</button>
+                </div>
+
+                <!-- Time and Distance Info -->
+                <div class="game-info">
+                    <div class="time-remaining">
+                        <span>Time: </span>
+                        <span id="timer">120s</span>
+                    </div>
+                    <div class="exploration-distance">
+                        <span>Explored: </span>
+                        <span id="distance-traveled">0m</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Modal -->
+        <div id="results-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>Round Results</h2>
+                <div class="result-info">
+                    <div class="distance-result">
+                        <h3>Distance: <span id="result-distance">0</span> km</h3>
+                        <div class="accuracy-bar">
+                            <div class="accuracy-fill" id="accuracy-fill"></div>
+                        </div>
+                    </div>
+                    <div class="points-earned">
+                        <h3>Points: +<span id="result-points">0</span></h3>
+                        <p class="hbar-earned">HBAR Earned: <span id="result-hbar">0</span></p>
+                    </div>
+                    <div class="location-reveal">
+                        <h4>Actual Location:</h4>
+                        <p id="actual-location">Loading...</p>
+                        <div class="location-comparison">
+                            <div class="your-guess">Your Guess</div>
+                            <div class="actual-location">Actual Location</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button id="next-round" class="next-btn">Next Round</button>
+                    <button id="view-nfts" class="nft-btn" style="display: none;">View NFTs</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Final Game Results -->
+        <div id="game-complete-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>Game Complete!</h2>
+                <div class="final-results">
+                    <div class="total-score">
+                        <h3>Final Score: <span id="final-score">0</span></h3>
+                        <div class="score-breakdown">
+                            <p>Accuracy Bonus: <span id="accuracy-bonus">0</span></p>
+                            <p>Speed Bonus: <span id="speed-bonus">0</span></p>
+                            <p>Exploration Bonus: <span id="exploration-bonus">0</span></p>
+                        </div>
+                    </div>
+                    <div class="rewards-earned">
+                        <h3>Rewards Earned</h3>
+                        <div class="reward-item">
+                            <span class="reward-icon">💰</span>
+                            <span>HBAR: <span id="total-hbar">0</span></span>
+                        </div>
+                        <div class="reward-item" id="nft-reward" style="display: none;">
+                            <span class="reward-icon">🏆</span>
+                            <span>Achievement NFT Unlocked!</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button id="play-again" class="play-btn">Play Again</button>
+                    <button id="view-leaderboard" class="leaderboard-btn">Leaderboard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // CDN Fallback system
+        window.loadScript = function(src, fallback) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = () => {
+                    if (fallback) {
+                        console.warn(`Failed to load ${src}, using fallback`);
+                        fallback().then(resolve).catch(reject);
+                    } else {
+                        reject(new Error(`Failed to load ${src}`));
+                    }
+                };
+                document.head.appendChild(script);
+            });
+        };
+
+        // Mock Three.js for demo purposes when CDN fails
+        window.createMockThreeJS = function() {
+            return new Promise((resolve) => {
+                window.THREE = {
+                    Scene: function() { return { add: () => {}, remove: () => {}, background: { setHex: () => {} }, fog: { color: { setHex: () => {} } } }; },
+                    PerspectiveCamera: function() { return { position: { set: () => {}, copy: () => {} }, rotation: { set: () => {}, order: '' }, aspect: 1, updateProjectionMatrix: () => {}, up: { x: 0, y: 1, z: 0 }, getWorldDirection: () => new THREE.Vector3() }; },
+                    WebGLRenderer: function() { return { setSize: () => {}, render: () => {}, setClearColor: () => {}, shadowMap: { enabled: false, type: '' } }; },
+                    Vector3: function(x, y, z) { this.x = x || 0; this.y = y || 0; this.z = z || 0; this.add = () => this; this.copy = () => this; this.multiplyScalar = () => this; this.normalize = () => this; this.length = () => 1; this.distanceTo = () => 0; this.clone = () => new THREE.Vector3(); this.crossVectors = () => this; },
+                    Color: function(color) { this.setHex = () => {}; },
+                    Fog: function() { this.color = { setHex: () => {} }; },
+                    AmbientLight: function() {},
+                    DirectionalLight: function() { this.position = { set: () => {} }; this.castShadow = false; this.shadow = { mapSize: { width: 0, height: 0 }, camera: { near: 0, far: 0, left: 0, right: 0, top: 0, bottom: 0 } }; },
+                    HemisphereLight: function() {},
+                    PlaneGeometry: function() { this.attributes = { position: { array: new Array(100), needsUpdate: false } }; this.computeVertexNormals = () => {}; },
+                    SphereGeometry: function() { this.scale = () => {}; },
+                    CylinderGeometry: function() {},
+                    BoxGeometry: function() {},
+                    ConeGeometry: function() {},
+                    MeshStandardMaterial: function() {},
+                    MeshBasicMaterial: function() {},
+                    Mesh: function() { this.position = { set: () => {}, y: 0 }; this.rotation = { x: 0 }; this.castShadow = false; this.receiveShadow = false; },
+                    Group: function() { this.add = () => {}; this.position = { set: () => {} }; this.castShadow = false; this.receiveShadow = false; },
+                    Raycaster: function() { this.set = () => {}; this.intersectObjects = () => []; },
+                    PCFSoftShadowMap: 'PCFSoftShadowMap',
+                    BackSide: 'BackSide'
+                };
+                console.log('Mock Three.js loaded for demo purposes');
+                resolve();
+            });
+        };
+
+        // Load dependencies
+        Promise.all([
+            loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r157/three.min.js', createMockThreeJS),
+            // Hedera SDK will use mock implementation
+        ]).then(() => {
+            // Load game scripts after dependencies
+            const gameScripts = [
+                'js/config.js',
+                'js/hedera-client.js', 
+                'js/world-generator.js',
+                'js/player-controller.js',
+                'js/game-logic.js',
+                'js/ui-manager.js',
+                'js/app.js'
+            ];
+            
+            return gameScripts.reduce((promise, script) => {
+                return promise.then(() => loadScript(script));
+            }, Promise.resolve());
+        }).catch(error => {
+            console.error('Failed to load game dependencies:', error);
+            document.body.innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 50%, #2a2a4a 100%); color: white; text-align: center; font-family: Arial;">
+                    <div style="background: rgba(26, 26, 58, 0.8); padding: 30px; border-radius: 15px; border: 1px solid #00d4aa;">
+                        <h1 style="color: #00d4aa;">⚡ Hedera GeoGuesser</h1>
+                        <p>Loading 3D libraries...</p>
+                        <p style="color: #ff6b6b;">Some external resources are blocked. Running in demo mode.</p>
+                        <button onclick="window.location.reload()" style="background: #00d4aa; color: #0f0f23; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; margin-top: 20px;">Try Again</button>
+                    </div>
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>
